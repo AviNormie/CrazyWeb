@@ -78,25 +78,6 @@ export function HomeLanding() {
 				</div>
 			</section>
 
-			<section
-				id="ambient"
-				className="relative h-[min(85vh,820px)] w-full scroll-mt-[52px] bg-black"
-			>
-				<SmokeBackground
-					smokeColor="#DC2626"
-					backgroundColor="#000000"
-					className="absolute inset-0 h-full w-full"
-				/>
-				<div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
-					<p className="max-w-md text-center text-sm leading-relaxed text-white/50 md:text-base">
-						<span className="text-white/75">Pulse.</span> The same energy runs
-						under meetings, rehearsals, and night-before pushes — friction and
-						warmth in one gradient.
-					</p>
-				</div>
-				<div className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_80%_at_50%_50%,transparent_35%,black_100%)]" />
-			</section>
-
 			<HeroSection
 				omitNavbar
 				showScreenshot={false}

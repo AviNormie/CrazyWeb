@@ -113,6 +113,14 @@ export function PopLanding() {
 						show up, you water the tree together — day by day — until the run is
 						complete.
 					</p>
+					<p className="text-sm">
+						<Link
+							href="/pop/leaderboard"
+							className="font-medium text-emerald-300/95 underline decoration-emerald-500/35 underline-offset-4 transition hover:text-emerald-200"
+						>
+							City leaderboard — who’s ahead?
+						</Link>
+					</p>
 				</div>
 
 				<Card className="border-white/10 bg-card/40 shadow-xl shadow-black/30 ring-1 ring-white/[0.06] backdrop-blur-xl">
