@@ -8,9 +8,7 @@ import {
 	codeDayFromChainCurrentDay,
 	deriveDailyCode,
 } from "@/lib/pop/daily-code";
-import {
-	offchainCurrentDay,
-} from "@/lib/pop/offchain-plant";
+import { offchainCurrentDay } from "@/lib/pop/offchain-plant";
 import { addVerified, verifiedCount } from "@/lib/pop/verified-store";
 
 export const runtime = "nodejs";
@@ -50,7 +48,10 @@ export async function POST(req: Request) {
 	const cityHash = hashCity(cityId);
 	const chain = await tryReadChainPlant(cityHash);
 	const useChainLogic = Boolean(chain && hasCoordinatorSigningKey());
-	const logicDay = useChainLogic && chain ? chain.currentDay : offchainCurrentDay(cityId);
+	const logicDay =
+		useChainLogic && chain
+			? chain.currentDay
+			: await offchainCurrentDay(cityId);
 
 	const dayForCode = codeDayFromChainCurrentDay(logicDay);
 	const expected = deriveDailyCode(secret, cityId, dayForCode);
@@ -61,14 +62,14 @@ export async function POST(req: Request) {
 			{
 				ok: false,
 				error: "invalid code",
-				verifiedCount: verifiedCount(cityId),
+				verifiedCount: await verifiedCount(cityId),
 				currentDay: logicDay,
 			},
 			{ status: 401 },
 		);
 	}
 
-	const count = addVerified(cityId, address);
+	const count = await addVerified(cityId, address);
 
 	return Response.json({
 		ok: true,

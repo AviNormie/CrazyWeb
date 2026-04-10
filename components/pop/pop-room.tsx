@@ -15,9 +15,12 @@ import {
 
 import { popContractAbi } from "@/lib/pop/abi";
 import { hashCity } from "@/lib/pop/city";
+import { loadMeetCodeDraft, saveMeetCodeDraft } from "@/lib/pop/browser-storage";
 import { labelForCityId, type PopCityId } from "@/lib/pop/cities";
+import { connectBrowserWallet } from "@/lib/pop/wallet-connect";
 
 import { PopPlantVisual } from "./pop-plant-visual";
+import { usePopPresentation } from "./presentation-context";
 
 const CONTRACT = process.env.NEXT_PUBLIC_POP_CONTRACT_ADDRESS as
 	| `0x${string}`
@@ -38,13 +41,14 @@ type SessionPayload = {
 };
 
 export function PopRoom({ cityId }: { cityId: PopCityId }) {
+	const { stealth } = usePopPresentation();
 	const [code, setCode] = useState("");
 	const [toast, setToast] = useState<string | null>(null);
 	const queryClient = useQueryClient();
 
 	const { address, isConnected } = useAccount();
 	const {
-		connect,
+		connectAsync,
 		connectors,
 		isPending: connectPending,
 		error: connectError,
@@ -60,6 +64,10 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 	}, [connectors]);
 
 	const { disconnect } = useDisconnect();
+
+	useEffect(() => {
+		setCode(loadMeetCodeDraft(cityId));
+	}, [cityId]);
 
 	const cityHash = useMemo(() => hashCity(cityId), [cityId]);
 	const cityLabel = labelForCityId(cityId);
@@ -154,11 +162,13 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 		setToast(null);
 		const r = await fetch(`/api/pop/hint?city=${encodeURIComponent(cityId)}`);
 		if (!r.ok) {
-			setToast("Hint unavailable (set POP_SHOW_CODE=true or use dev)");
+			setToast("Code hint isn’t available for this room right now.");
 			return;
 		}
 		const j = await r.json();
-		setToast(`Demo code: ${j.code}`);
+		setToast(
+			`Today’s code: ${j.code}`,
+		);
 	}
 
 	async function onWater() {
@@ -194,15 +204,17 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 		if (data.mode === "offchain") {
 			setToast(
 				data.simulatedMint
-					? "Day 7 complete — simulated mint (server demo; no on-chain tx)."
-					: "Watered (server demo). Chain is used automatically when RPC + contract work.",
+					? "Amazing — you finished all seven days. The plant is complete."
+					: "Water recorded. The plant grows with your group.",
 			);
 			await queryClient.invalidateQueries({ queryKey: ["pop-session", cityId] });
 			return;
 		}
 
 		if (!CONTRACT || !data.signature || !data.codeHash) {
-			setToast("Missing contract in browser env for on-chain tx.");
+			setToast(
+				"Connection to the network isn’t available in this browser build.",
+			);
 			return;
 		}
 
@@ -250,14 +262,8 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 					</h1>
 				</div>
 				<div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[11px] backdrop-blur-sm">
-					<span
-						className={
-							session?.mode === "chain"
-								? "text-emerald-300"
-								: "text-sky-300"
-						}
-					>
-						{session?.mode === "chain" ? "Chain" : "Server demo"}
+					<span className="text-emerald-300/95">
+						{session?.mode === "chain" ? "Live · synced" : "Live"}
 					</span>
 					<span className="text-white/30">·</span>
 					<span className="text-white/50">
@@ -271,22 +277,14 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 					<HeartHandshake className="h-4 w-4 shrink-0" aria-hidden />
 					<strong className="font-medium">The need:</strong>
 				</span>{" "}
-				Small groups need a credible signal you met in person — not another form.
-				This room ties a daily code to your city; when two wallets verify, you can
-				water together and grow the tree to day seven.
+				Small groups need a simple way to show they actually met. This room uses a
+				daily code for your city — once two wallets verify, you can water together
+				and grow the tree through seven days.
 			</p>
 
 			<div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
 				<div className="space-y-6">
-					{session?.mode === "offchain" && (
-						<div className="rounded-2xl border border-sky-500/30 bg-sky-950/20 px-4 py-3 text-sm text-sky-100/95 backdrop-blur-sm">
-							<strong className="font-medium text-sky-200">Server plant</strong>{" "}
-							— no contract required. Enable Sepolia + contract + coordinator key
-							when you want real <code className="text-xs">waterPlant</code> txs.
-						</div>
-					)}
-
-					{session?.mode === "chain" && !CONTRACT && (
+					{!stealth && session?.mode === "chain" && !CONTRACT && (
 						<div className="rounded-2xl border border-amber-500/35 bg-amber-950/20 px-4 py-3 text-sm text-amber-100/95 backdrop-blur-sm">
 							Add{" "}
 							<code className="text-xs">NEXT_PUBLIC_POP_CONTRACT_ADDRESS</code> in
@@ -300,14 +298,15 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 								<button
 									type="button"
 									onClick={() => {
-										resetConnect();
-										if (browserConnector) {
-											connect({ connector: browserConnector });
-										} else {
-											setToast(
-												"No browser wallet found. Install MetaMask and refresh.",
+										void (async () => {
+											resetConnect();
+											setToast(null);
+											const r = await connectBrowserWallet(
+												connectAsync,
+												browserConnector,
 											);
-										}
+											if (!r.ok) setToast(r.message);
+										})();
 									}}
 									disabled={connectPending}
 									className="rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-black shadow-lg shadow-emerald-900/35 hover:bg-emerald-400 disabled:opacity-50"
@@ -344,10 +343,24 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 							</label>
 							<input
 								value={code}
-								onChange={(e) => setCode(e.target.value)}
+								onChange={(e) => {
+									const v = e.target.value;
+									setCode(v);
+									saveMeetCodeDraft(cityId, v);
+								}}
 								placeholder="8-character code from someone in the room"
 								className="w-full rounded-xl border border-white/15 bg-black/45 px-4 py-3 text-sm outline-none ring-emerald-500/25 transition focus:ring-2"
+								autoComplete="off"
+								spellCheck={false}
 							/>
+							<p className="text-xs leading-relaxed text-white/50">
+								Get it from whoever is running the meetup (in person or in your
+								group chat). Everyone in {cityLabel} shares the same code for the
+								current plant day; it can change as the week advances. If your
+								host enabled it here,{" "}
+								<span className="text-white/65">Show today’s code</span> may
+								also work.
+							</p>
 						</div>
 
 						<div className="mt-4 flex flex-wrap gap-3">
@@ -364,7 +377,7 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 								onClick={() => void onHint()}
 								className="rounded-full border border-white/15 px-4 py-2 text-xs text-white/75 hover:bg-white/10"
 							>
-								Demo hint
+								Show today’s code
 							</button>
 						</div>
 					</div>
@@ -444,7 +457,7 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 							<div className="font-mono text-right">
 								{session?.wateringDay ?? "—"}
 							</div>
-							<div className="text-white/50">Chain day</div>
+							<div className="text-white/50">Reference</div>
 							<div className="font-mono text-right">
 								{session?.mode === "chain" ? (dayOnChain ?? "—") : "—"}
 							</div>
@@ -452,11 +465,7 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 							<div className="font-mono text-right">{lastWatered}</div>
 							<div className="text-white/50">Status</div>
 							<div className="text-right font-mono text-emerald-200/85">
-								{completed
-									? session?.mode === "offchain"
-										? "Done (sim)"
-										: "Done + NFT"
-									: "Growing"}
+								{completed ? "Complete" : "Growing"}
 							</div>
 						</div>
 					</div>

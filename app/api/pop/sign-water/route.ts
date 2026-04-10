@@ -15,6 +15,7 @@ import {
 	codeDayFromChainCurrentDay,
 	deriveDailyCode,
 } from "@/lib/pop/daily-code";
+import { coordinatorPkHex } from "@/lib/pop/coordinator-key";
 import { getAlchemySepoliaUrl, getPopContractAddress } from "@/lib/pop/env-server";
 import { popEip712Domain, POP_EIP712_TYPES } from "@/lib/pop/eip712";
 import {
@@ -23,7 +24,6 @@ import {
 	offchainWaterPlant,
 } from "@/lib/pop/offchain-plant";
 import { wateringDayForTx } from "@/lib/pop/plant-day";
-import { coordinatorPkHex } from "@/lib/pop/coordinator-key";
 import { isVerified, verifiedCount } from "@/lib/pop/verified-store";
 
 export const runtime = "nodejs";
@@ -64,13 +64,13 @@ export async function POST(req: Request) {
 	}
 	const address = addrRaw as Address;
 
-	if (verifiedCount(cityId) < MIN_VERIFIED) {
+	if ((await verifiedCount(cityId)) < MIN_VERIFIED) {
 		return Response.json(
 			{ error: "need at least two verified users" },
 			{ status: 403 },
 		);
 	}
-	if (!isVerified(cityId, address)) {
+	if (!(await isVerified(cityId, address))) {
 		return Response.json({ error: "wallet not verified for this city" }, { status: 403 });
 	}
 
@@ -137,12 +137,12 @@ export async function POST(req: Request) {
 				chainDay: effective,
 			});
 		} catch {
-			// RPC / contract / signing failure — fall back to server-only plant (demo).
+			// fall through to shared plant
 		}
 	}
 
-	const logicDay = offchainCurrentDay(cityId);
-	const snap = offchainPlantSnapshot(cityId);
+	const logicDay = await offchainCurrentDay(cityId);
+	const snap = await offchainPlantSnapshot(cityId);
 	const effectiveOff = wateringDayForTx(logicDay, snap.lastWateredDay);
 
 	const dayForCodeOff = codeDayFromChainCurrentDay(logicDay);
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
 		);
 	}
 
-	const w = offchainWaterPlant(cityId, address, effectiveOff);
+	const w = await offchainWaterPlant(cityId, address, effectiveOff);
 	if (!w.ok) {
 		return Response.json({ error: w.error }, { status: 409 });
 	}

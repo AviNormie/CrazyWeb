@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import Link from "next/link";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -65,46 +66,69 @@ function ScreenshotSection({
 	);
 }
 
-function HeroContent() {
-	return (
-		<div className="max-w-3xl px-4 pt-16 text-left text-white sm:pt-24 md:pt-32">
-			<h1 className="mb-4 text-3xl leading-tight font-bold tracking-wide sm:text-5xl md:text-7xl">
+type HeroContentProps = {
+	title?: React.ReactNode;
+	subtitle?: string;
+	actions?: React.ReactNode;
+};
+
+function HeroContent({
+	title,
+	subtitle,
+	actions,
+}: HeroContentProps) {
+	const resolvedTitle =
+		title ??
+		(
+			<>
 				Elevate your <br className="sm:hidden" />
 				creative workflow
 				<br className="sm:hidden" /> to an art form.
+			</>
+		);
+	const resolvedSubtitle =
+		subtitle ??
+		"Manage all of your media and assets — video, photos, design files, docs, PDFs, and more — on a single secure surface to create and deliver high-quality content faster.";
+	const defaultActions = (
+		<>
+			<button
+				type="button"
+				className="w-full rounded-full border border-[#322D36] bg-[#8200DB29] px-6 py-2 font-semibold text-white transition duration-300 hover:bg-black/50 sm:w-auto sm:py-3 sm:px-8"
+				style={{ backdropFilter: "blur(8px)" }}
+			>
+				Start Free Trial
+			</button>
+			<button
+				type="button"
+				className="pointer-events-auto flex w-full items-center justify-center rounded-full border border-gray-600 bg-[#0009] px-6 py-2 font-medium text-gray-200 transition duration-300 hover:border-gray-400 hover:text-white sm:w-auto sm:py-3 sm:px-8"
+			>
+				<svg
+					className="mr-2 h-4 w-4 sm:h-5 sm:w-5"
+					fill="currentColor"
+					viewBox="0 0 20 20"
+					xmlns="http://www.w3.org/2000/svg"
+					aria-hidden
+				>
+					<path
+						fillRule="evenodd"
+						d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+						clipRule="evenodd"
+					/>
+				</svg>
+				Watch the Video
+			</button>
+		</>
+	);
+	return (
+		<div className="pointer-events-auto max-w-3xl px-4 pt-16 text-left text-white sm:pt-24 md:pt-32">
+			<h1 className="mb-4 text-3xl leading-tight font-bold tracking-wide sm:text-5xl md:text-7xl">
+				{resolvedTitle}
 			</h1>
 			<p className="mb-6 max-w-xl text-base opacity-80 sm:mb-8 sm:text-lg md:text-xl">
-				Manage all of your media and assets — video, photos, design files, docs,
-				PDFs, and more — on a single secure surface to create and deliver
-				high-quality content faster.
+				{resolvedSubtitle}
 			</p>
-			<div className="pointer-events-auto flex flex-col items-start space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
-				<button
-					type="button"
-					className="w-full rounded-full border border-[#322D36] bg-[#8200DB29] px-6 py-2 font-semibold text-white transition duration-300 hover:bg-black/50 sm:w-auto sm:py-3 sm:px-8"
-					style={{ backdropFilter: "blur(8px)" }}
-				>
-					Start Free Trial
-				</button>
-				<button
-					type="button"
-					className="pointer-events-auto flex w-full items-center justify-center rounded-full border border-gray-600 bg-[#0009] px-6 py-2 font-medium text-gray-200 transition duration-300 hover:border-gray-400 hover:text-white sm:w-auto sm:py-3 sm:px-8"
-				>
-					<svg
-						className="mr-2 h-4 w-4 sm:h-5 sm:w-5"
-						fill="currentColor"
-						viewBox="0 0 20 20"
-						xmlns="http://www.w3.org/2000/svg"
-						aria-hidden
-					>
-						<path
-							fillRule="evenodd"
-							d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-							clipRule="evenodd"
-						/>
-					</svg>
-					Watch the Video
-				</button>
+			<div className="flex flex-col items-start space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
+				{actions ?? defaultActions}
 			</div>
 		</div>
 	);
@@ -588,21 +612,40 @@ function Navbar() {
 	);
 }
 
-export function HeroSection() {
+export type HeroSectionProps = {
+	/** When true, skip the template navbar (use a shared site header on the page). */
+	omitNavbar?: boolean;
+	heroTitle?: React.ReactNode;
+	heroSubtitle?: string;
+	heroActions?: React.ReactNode;
+	belowFoldTitle?: string;
+	belowFoldBody?: string;
+	/** Set false to hide the screenshot band (e.g. when below-the-fold is custom on the page). */
+	showScreenshot?: boolean;
+};
+
+export function HeroSection({
+	omitNavbar = false,
+	heroTitle,
+	heroSubtitle,
+	heroActions,
+	belowFoldTitle = "Other Content Below",
+	belowFoldBody = "This is where additional sections of your landing page would go.",
+	showScreenshot = true,
+}: HeroSectionProps = {}) {
 	const screenshotRef = useRef<HTMLDivElement>(null);
 	const heroContentRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		const handleScroll = () => {
-			if (!screenshotRef.current || !heroContentRef.current) return;
 			requestAnimationFrame(() => {
 				const scrollPosition = window.scrollY;
 				if (screenshotRef.current) {
 					screenshotRef.current.style.transform = `translateY(-${scrollPosition * 0.5}px)`;
 				}
-				const maxScroll = 400;
-				const opacity = 1 - Math.min(scrollPosition / maxScroll, 1);
 				if (heroContentRef.current) {
+					const maxScroll = 400;
+					const opacity = 1 - Math.min(scrollPosition / maxScroll, 1);
 					heroContentRef.current.style.opacity = String(opacity);
 				}
 			});
@@ -612,8 +655,8 @@ export function HeroSection() {
 	}, []);
 
 	return (
-		<div className="relative">
-			<Navbar />
+		<div id="depth" className="relative">
+			{!omitNavbar ? <Navbar /> : null}
 
 			<div className="relative h-screen">
 				<div className="pointer-events-auto absolute inset-0 z-0">
@@ -625,23 +668,37 @@ export function HeroSection() {
 					className="pointer-events-none absolute inset-0 z-10 flex h-screen items-center justify-start"
 				>
 					<div className="container mx-auto w-full">
-						<HeroContent />
+						<HeroContent
+							title={heroTitle}
+							subtitle={heroSubtitle}
+							actions={heroActions}
+						/>
 					</div>
 				</div>
 			</div>
 
 			<div
-				className="relative z-10 h-screen overflow-y-auto bg-black"
+				className="relative z-10 min-h-screen overflow-y-auto bg-black"
 				style={{ marginTop: "-10vh" }}
 			>
-				<ScreenshotSection screenshotRef={screenshotRef} />
+				{showScreenshot ? <ScreenshotSection screenshotRef={screenshotRef} /> : null}
 				<div className="container mx-auto px-4 py-16 text-white">
-					<h2 className="mb-8 text-center text-4xl font-bold">
-						Other Content Below
-					</h2>
-					<p className="mx-auto max-w-xl text-center opacity-80">
-						This is where additional sections of your landing page would go.
-					</p>
+					<h2 className="mb-8 text-center text-4xl font-bold">{belowFoldTitle}</h2>
+					<p className="mx-auto max-w-xl text-center opacity-80">{belowFoldBody}</p>
+					<div className="mx-auto mt-10 flex max-w-lg flex-col items-center gap-3 sm:flex-row sm:justify-center">
+						<Link
+							href="/pop"
+							className="rounded-full bg-emerald-500 px-8 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+						>
+							Go to Proof of Presence
+						</Link>
+						<a
+							href="#connection"
+							className="rounded-full border border-white/20 px-8 py-3 text-sm font-medium text-white/90 transition hover:border-emerald-400/50 hover:text-emerald-200"
+						>
+							Back to story
+						</a>
+					</div>
 				</div>
 			</div>
 		</div>

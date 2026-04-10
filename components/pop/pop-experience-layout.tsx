@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 
 import { SmokeBackground } from "@/components/ui/smokeAnimation";
 
+import { usePopPresentation } from "./presentation-context";
+
 type Props = {
 	children: ReactNode;
 	/** When false, skip WebGL smoke (e.g. reduced motion) — still uses gradients */
@@ -12,6 +14,7 @@ type Props = {
 };
 
 export function PopExperienceLayout({ children, ambient = true }: Props) {
+	const { stealth } = usePopPresentation();
 	return (
 		<div className="relative min-h-screen overflow-x-hidden bg-black text-white">
 			<div className="fixed inset-0 z-0" aria-hidden>
@@ -33,10 +36,10 @@ export function PopExperienceLayout({ children, ambient = true }: Props) {
 						href="/"
 						className="text-sm font-medium text-emerald-300/95 transition hover:text-emerald-200"
 					>
-						← Home demos
+						← Home
 					</Link>
 					<span className="hidden text-[11px] tracking-[0.2em] text-white/45 uppercase sm:block">
-						Proof of Presence
+						{stealth ? "Presence" : "Proof of Presence"}
 					</span>
 					<Link
 						href="/pop"

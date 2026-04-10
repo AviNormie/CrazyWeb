@@ -4,6 +4,7 @@ import { useGSAP } from "@gsap/react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { gsap } from "gsap";
 import { SplitText } from "gsap/SplitText";
+import type { ReactNode } from "react";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
@@ -216,7 +217,23 @@ function ShaderBackground({
 	);
 }
 
-export default function InfiniteHero() {
+export type InfiniteHeroProps = {
+	/** Screen-reader / section landmark */
+	sectionId?: string;
+	title?: string;
+	description?: string;
+	/** Primary + secondary actions (use `pointer-events-auto` on clickable elements). */
+	children?: ReactNode;
+	className?: string;
+};
+
+export function InfiniteHero({
+	sectionId = "signal",
+	title = "The Alan Turing Club",
+	description = "Minimal structures fade into a vast horizon where presence and absence merge. A quiet tension invites the eye to wander without end.",
+	children,
+	className = "",
+}: InfiniteHeroProps) {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const bgRef = useRef<HTMLDivElement>(null);
 	const h1Ref = useRef<HTMLHeadingElement>(null);
@@ -225,6 +242,7 @@ export default function InfiniteHero() {
 
 	useGSAP(
 		() => {
+			if (!h1Ref.current || !pRef.current) return;
 			const ctas = ctaRef.current ? Array.from(ctaRef.current.children) : [];
 
 			const h1Split = new SplitText(h1Ref.current, { type: "lines" });
@@ -274,57 +292,63 @@ export default function InfiniteHero() {
 				pSplit.revert();
 			};
 		},
-		{ scope: rootRef },
+		{ scope: rootRef, dependencies: [title, description], revertOnUpdate: true },
 	);
 
 	return (
-		<div
+		<section
+			id={sectionId}
 			ref={rootRef}
-			className="relative h-screen w-full overflow-hidden bg-black text-white"
+			className={`relative h-screen w-full overflow-hidden bg-black text-white ${className}`}
 		>
 			<div className="absolute inset-0" ref={bgRef}>
 				<ShaderBackground className="h-full w-full" />
 			</div>
 
+			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(100%_80%_at_50%_30%,rgba(16,185,129,0.08)_0%,transparent_50%)]" />
 			<div className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_80%_at_50%_50%,_transparent_40%,_black_100%)]" />
 
-			<div className="relative z-10 flex h-screen w-full items-center justify-center px-6">
+			<div className="relative z-10 flex h-screen w-full items-center justify-center px-6 pt-14">
 				<div className="text-center">
 					<h1
 						ref={h1Ref}
 						className="mx-auto max-w-2xl lg:max-w-4xl text-[clamp(2.25rem,6vw,4rem)] font-extralight leading-[0.95] tracking-tight"
 					>
-						The Alan Turing Club
+						{title}
 					</h1>
 					<p
 						ref={pRef}
 						className="mx-auto mt-4 max-w-2xl md:text-balance text-sm/6 md:text-base/7 font-light tracking-tight text-white/70"
 					>
-						Minimal structures fade into a vast horizon where presence and
-						absence merge. A quiet tension invites the eye to wander without
-						end.
+						{description}
 					</p>
 
 					<div
 						ref={ctaRef}
-						className="mt-8 flex flex-row items-center justify-center gap-4"
+						className="mt-8 flex flex-row flex-wrap items-center justify-center gap-4"
 					>
-						<button
-							type="button"
-							className="group relative overflow-hidden border border-white/30 bg-gradient-to-r from-white/20 to-white/10 px-4 py-2 text-sm rounded-lg font-medium tracking-wide text-white backdrop-blur-sm transition-[border-color,background-color,box-shadow] duration-500 hover:border-white/50 hover:bg-white/20 hover:shadow-lg hover:shadow-white/10 cursor-pointer"
-						>
-							Learn more
-						</button>
+						{children ?? (
+							<>
+								<button
+									type="button"
+									className="group relative cursor-pointer overflow-hidden rounded-lg border border-white/30 bg-gradient-to-r from-white/20 to-white/10 px-4 py-2 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition-[border-color,background-color,box-shadow] duration-500 hover:border-white/50 hover:bg-white/20 hover:shadow-lg hover:shadow-white/10"
+								>
+									Learn more
+								</button>
 
-						<button
-							type="button"
-							className="group relative px-4 py-2 text-sm font-medium tracking-wide text-white/90 transition-[filter,color] duration-500 hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.6)] hover:text-white cursor-pointer"
-						>
-							View portfolio
-						</button>
+								<button
+									type="button"
+									className="group relative cursor-pointer px-4 py-2 text-sm font-medium tracking-wide text-white/90 transition-[filter,color] duration-500 hover:text-white hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]"
+								>
+									View portfolio
+								</button>
+							</>
+						)}
 					</div>
 				</div>
 			</div>
-		</div>
+		</section>
 	);
 }
+
+export default InfiniteHero;

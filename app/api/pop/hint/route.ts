@@ -12,7 +12,9 @@ export const runtime = "nodejs";
 
 export async function GET(req: Request) {
 	const show =
-		process.env.POP_SHOW_CODE === "true" || process.env.NODE_ENV === "development";
+		process.env.POP_SHOW_CODE === "true" ||
+		process.env.POP_DEMO_HINT === "true" ||
+		process.env.NODE_ENV === "development";
 	if (!show) {
 		return Response.json({ error: "not available" }, { status: 404 });
 	}
@@ -35,17 +37,25 @@ export async function GET(req: Request) {
 	const cityHash = hashCity(cityId);
 	const chain = await tryReadChainPlant(cityHash);
 	const useChainLogic = Boolean(chain && hasCoordinatorSigningKey());
-	const logicDay = useChainLogic && chain ? chain.currentDay : offchainCurrentDay(cityId);
+	const logicDay =
+		useChainLogic && chain
+			? chain.currentDay
+			: await offchainCurrentDay(cityId);
 
 	const dayForCode = codeDayFromChainCurrentDay(logicDay);
 	const code = deriveDailyCode(secret, cityId, dayForCode);
 
-	return Response.json({
+	const payload: Record<string, unknown> = {
 		cityId,
 		currentDay: logicDay,
 		codeDayUsed: dayForCode,
 		code,
 		mode: useChainLogic ? "chain" : "offchain",
-		hackathonNote: "Disable POP_SHOW_CODE for serious demos",
-	});
+	};
+
+	if (process.env.POP_SHOW_INTERNAL_LABELS === "true") {
+		payload.note = "Disable POP_SHOW_CODE / POP_DEMO_HINT for public demos";
+	}
+
+	return Response.json(payload);
 }

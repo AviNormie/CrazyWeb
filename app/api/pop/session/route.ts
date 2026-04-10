@@ -39,18 +39,19 @@ export async function GET(req: Request) {
 		lastWateredDay = chain.lastWateredDay;
 	} else {
 		mode = "offchain";
-		const p = offchainPlantSnapshot(cityId);
-		currentDay = offchainCurrentDay(cityId);
+		const p = await offchainPlantSnapshot(cityId);
+		currentDay = await offchainCurrentDay(cityId);
 		completed = p.completed;
 		lastWateredDay = p.lastWateredDay;
 	}
 
 	const wateringDay = wateringDayForTx(currentDay, lastWateredDay);
-	const count = verifiedCount(cityId);
+	const count = await verifiedCount(cityId);
 	const canWater =
 		count >= MIN_VERIFIED &&
 		!completed &&
-		(wateringDay >= 1 && wateringDay <= 7);
+		wateringDay >= 1 &&
+		wateringDay <= 7;
 
 	return Response.json({
 		cityId,
@@ -58,7 +59,7 @@ export async function GET(req: Request) {
 		cityHash,
 		mode,
 		verifiedCount: count,
-		verifiedAddresses: listVerifiedAddresses(cityId),
+		verifiedAddresses: await listVerifiedAddresses(cityId),
 		minVerified: MIN_VERIFIED,
 		currentDay,
 		completed,

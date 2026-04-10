@@ -124,13 +124,13 @@ export function GooeyText({
 			</svg>
 
 			<div
-				className="relative flex h-full min-h-[200px] w-full items-center justify-center"
+				className="relative flex h-full min-h-[200px] w-full items-center justify-center px-4"
 				style={{ filter: filterHref }}
 			>
 				<span
 					ref={text1Ref}
 					className={cn(
-						"absolute inline-block select-none text-center text-6xl md:text-[60pt]",
+						"absolute inline-block max-w-[min(92vw,44rem)] select-none text-center text-6xl leading-[1.12] md:text-[60pt]",
 						"text-foreground",
 						textClassName,
 					)}
@@ -138,7 +138,7 @@ export function GooeyText({
 				<span
 					ref={text2Ref}
 					className={cn(
-						"absolute inline-block select-none text-center text-6xl md:text-[60pt]",
+						"absolute inline-block max-w-[min(92vw,44rem)] select-none text-center text-6xl leading-[1.12] md:text-[60pt]",
 						"text-foreground",
 						textClassName,
 					)}
