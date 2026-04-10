@@ -280,7 +280,7 @@ export default function InfiniteHero() {
 	return (
 		<div
 			ref={rootRef}
-			className="relative h-svh w-full overflow-hidden bg-black text-white"
+			className="relative h-screen w-full overflow-hidden bg-black text-white"
 		>
 			<div className="absolute inset-0" ref={bgRef}>
 				<ShaderBackground className="h-full w-full" />
@@ -288,7 +288,7 @@ export default function InfiniteHero() {
 
 			<div className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_80%_at_50%_50%,_transparent_40%,_black_100%)]" />
 
-			<div className="relative z-10 flex h-svh w-full items-center justify-center px-6">
+			<div className="relative z-10 flex h-screen w-full items-center justify-center px-6">
 				<div className="text-center">
 					<h1
 						ref={h1Ref}
