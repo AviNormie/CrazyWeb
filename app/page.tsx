@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { HeroSection } from "@/components/ui/galaxy-interactive-hero-section";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import InfiniteHero from "@/components/ui/infinite-hero";
@@ -8,6 +10,14 @@ const GOOEY_TEXTS = ["Avi", "Is", "Awesome"];
 export default function DemoOne() {
 	return (
 		<>
+			<div className="fixed top-4 right-4 z-[100]">
+				<Link
+					href="/pop"
+					className="rounded-full border border-emerald-400/50 bg-black/70 px-3 py-1.5 text-xs text-emerald-300 backdrop-blur hover:bg-emerald-950/80"
+				>
+					Pop Plant (Web3)
+				</Link>
+			</div>
 			<InfiniteHero />
 			<section className="relative h-screen w-full bg-black">
 				<SmokeBackground
