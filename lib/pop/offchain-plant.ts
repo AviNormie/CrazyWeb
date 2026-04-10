@@ -148,3 +148,40 @@ export async function offchainWaterPlant(
 		completed: mid.completed,
 	};
 }
+
+/** Demo only: grow plant one stage without a water tx; keeps calendar aligned for meet codes. */
+export async function offchainDemoAdvanceStage(
+	cityId: PopCityId,
+): Promise<
+	| { ok: true; lastWateredDay: number; currentDay: number; completed: boolean }
+	| { ok: false; error: string }
+> {
+	const p = await loadRow(cityId);
+	if (p.completed) {
+		return { ok: false, error: "Plant run is already complete." };
+	}
+	const spd = offchainSecondsPerDay();
+	const L = p.lastWateredDay;
+	if (L >= 7) {
+		return { ok: false, error: "Already at the final stage." };
+	}
+
+	const newL = L + 1;
+	const completed = newL === 7;
+	// Align calendar so meet codes and the next water day match lastWatered + 1 (day 7 → completed).
+	const next: OffchainPlantRow = {
+		sessionStartMs: completed
+			? (p.sessionStartMs > 0 ? p.sessionStartMs : Date.now())
+			: Date.now() - newL * spd * 1000,
+		lastWateredDay: newL,
+		completed,
+	};
+	await saveRow(cityId, next);
+	const currentDay = await offchainCurrentDay(cityId);
+	return {
+		ok: true,
+		lastWateredDay: next.lastWateredDay,
+		currentDay,
+		completed: next.completed,
+	};
+}

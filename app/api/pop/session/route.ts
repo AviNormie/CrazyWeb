@@ -6,6 +6,7 @@ import {
 	offchainCurrentDay,
 	offchainPlantSnapshot,
 } from "@/lib/pop/offchain-plant";
+import { isPopDemoAdvanceDayEnabled } from "@/lib/pop/demo-flags";
 import { wateringDayForTx } from "@/lib/pop/plant-day";
 import { listVerifiedAddresses, verifiedCount } from "@/lib/pop/verified-store";
 
@@ -66,5 +67,7 @@ export async function GET(req: Request) {
 		lastWateredDay,
 		wateringDay,
 		canWater,
+		demoAdvanceDayAvailable:
+			isPopDemoAdvanceDayEnabled() && mode === "offchain",
 	});
 }

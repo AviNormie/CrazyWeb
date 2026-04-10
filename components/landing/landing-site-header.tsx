@@ -10,7 +10,7 @@ export function LandingSiteHeader() {
 					href="/"
 					className="text-sm font-semibold tracking-tight text-white transition hover:text-emerald-200"
 				>
-					CrazyWeb
+					Proof of Presence Plant
 				</Link>
 				<nav
 					className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[11px] font-medium text-white/65 sm:gap-x-6 sm:text-xs md:text-sm"
@@ -21,9 +21,6 @@ export function LandingSiteHeader() {
 					</a>
 					<a href="#connection" className="transition hover:text-emerald-200">
 						Connection
-					</a>
-					<a href="#ambient" className="transition hover:text-emerald-200">
-						Pulse
 					</a>
 					<a href="#depth" className="transition hover:text-emerald-200">
 						Depth

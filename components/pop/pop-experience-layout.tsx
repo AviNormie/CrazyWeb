@@ -41,12 +41,20 @@ export function PopExperienceLayout({ children, ambient = true }: Props) {
 					<span className="hidden text-[11px] tracking-[0.2em] text-white/45 uppercase sm:block">
 						{stealth ? "Presence" : "Proof of Presence"}
 					</span>
-					<Link
-						href="/pop"
-						className="text-sm text-white/65 transition hover:text-white"
-					>
-						All cities
-					</Link>
+					<div className="flex items-center gap-4">
+						<Link
+							href="/pop/leaderboard"
+							className="text-sm text-white/65 transition hover:text-emerald-200"
+						>
+							Leaderboard
+						</Link>
+						<Link
+							href="/pop"
+							className="text-sm text-white/65 transition hover:text-white"
+						>
+							All cities
+						</Link>
+					</div>
 				</nav>
 			</header>
 

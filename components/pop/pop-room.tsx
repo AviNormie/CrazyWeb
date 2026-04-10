@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Droplets, HeartHandshake } from "lucide-react";
+import { Droplets, FastForward, HeartHandshake } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -38,12 +38,14 @@ type SessionPayload = {
 	minVerified: number;
 	mode: "chain" | "offchain";
 	wateringDay: number;
+	demoAdvanceDayAvailable?: boolean;
 };
 
 export function PopRoom({ cityId }: { cityId: PopCityId }) {
 	const { stealth } = usePopPresentation();
 	const [code, setCode] = useState("");
 	const [toast, setToast] = useState<string | null>(null);
+	const [demoAdvancing, setDemoAdvancing] = useState(false);
 	const queryClient = useQueryClient();
 
 	const { address, isConnected } = useAccount();
@@ -137,6 +139,35 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 		isConnected &&
 		address &&
 		code.trim().length > 0;
+
+	async function onDemoAdvanceStage() {
+		setToast(null);
+		setDemoAdvancing(true);
+		try {
+			const r = await fetch("/api/pop/demo-advance-day", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ city: cityId }),
+			});
+			const data = (await r.json().catch(() => ({}))) as {
+				error?: string;
+				completed?: boolean;
+				lastWateredDay?: number;
+			};
+			if (!r.ok) {
+				setToast(typeof data.error === "string" ? data.error : "Could not advance.");
+				return;
+			}
+			setToast(
+				data.completed
+					? "Plant is complete — all stages unlocked for this city."
+					: `Advanced to stage ${data.lastWateredDay ?? ""} of 7.`,
+			);
+			await queryClient.invalidateQueries({ queryKey: ["pop-session", cityId] });
+		} finally {
+			setDemoAdvancing(false);
+		}
+	}
 
 	async function onVerify() {
 		setToast(null);
@@ -469,6 +500,32 @@ export function PopRoom({ cityId }: { cityId: PopCityId }) {
 							</div>
 						</div>
 					</div>
+
+					{session?.demoAdvanceDayAvailable && !completed ? (
+						<div className="rounded-2xl border border-amber-500/30 bg-amber-950/25 p-4 shadow-[0_0_0_1px_rgba(245,158,11,0.08)_inset] backdrop-blur-sm">
+							<p className="mb-2 text-[10px] font-medium tracking-[0.2em] text-amber-200/80 uppercase">
+								{stealth ? "Preview" : "Demo"}
+							</p>
+							<button
+								type="button"
+								onClick={() => void onDemoAdvanceStage()}
+								disabled={demoAdvancing}
+								className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/15 px-3 py-2.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/25 disabled:opacity-50"
+							>
+								<FastForward className="h-3.5 w-3.5" aria-hidden />
+								{demoAdvancing
+									? "Advancing…"
+									: stealth
+										? "Next plant stage"
+										: "Next plant stage (skip water)"}
+							</button>
+							<p className="mt-2 text-[11px] leading-relaxed text-white/45">
+								{stealth
+									? "Off-chain rooms only. Advances the shared visual for this city."
+									: "Off-chain only: grows the plant one step and aligns the calendar so meet codes match the next day—no wallet tx."}
+							</p>
+						</div>
+					) : null}
 				</aside>
 			</div>
 		</div>
