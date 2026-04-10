@@ -1,15 +1,16 @@
 import { type Address, isAddress } from "viem";
 
-import { hashCity, normalizeCity } from "@/lib/pop/city";
+import { hashCity } from "@/lib/pop/city";
+import { tryReadChainPlant } from "@/lib/pop/chain-attempt";
+import { hasCoordinatorSigningKey } from "@/lib/pop/coordinator-key";
+import { parsePopCityId } from "@/lib/pop/cities";
 import {
 	codeDayFromChainCurrentDay,
 	deriveDailyCode,
 } from "@/lib/pop/daily-code";
 import {
-	getPopPublicClient,
-	readPopCurrentDay,
-} from "@/lib/pop/chain-read";
-import { getAlchemySepoliaUrl, getPopContractAddress } from "@/lib/pop/env-server";
+	offchainCurrentDay,
+} from "@/lib/pop/offchain-plant";
 import { addVerified, verifiedCount } from "@/lib/pop/verified-store";
 
 export const runtime = "nodejs";
@@ -29,52 +30,30 @@ export async function POST(req: Request) {
 			{ status: 400 },
 		);
 	}
+	const cityId = parsePopCityId(cityRaw);
+	if (!cityId) {
+		return Response.json({ error: "invalid city" }, { status: 400 });
+	}
 	if (!isAddress(addrRaw)) {
 		return Response.json({ error: "invalid address" }, { status: 400 });
 	}
 	const address = addrRaw as Address;
 
 	const secret = process.env.DAILY_CODE_SECRET;
-	const contract = getPopContractAddress();
-	const rpc = getAlchemySepoliaUrl();
 	if (!secret) {
 		return Response.json(
 			{ error: "DAILY_CODE_SECRET not configured" },
 			{ status: 500 },
 		);
 	}
-	if (!contract) {
-		return Response.json(
-			{
-				error:
-					"Set POP_CONTRACT_ADDRESS or NEXT_PUBLIC_POP_CONTRACT_ADDRESS",
-			},
-			{ status: 500 },
-		);
-	}
-	if (!rpc) {
-		return Response.json(
-			{
-				error:
-					"Set ALCHEMY_SEPOLIA_URL or NEXT_PUBLIC_ALCHEMY_SEPOLIA_URL",
-			},
-			{ status: 500 },
-		);
-	}
 
-	const cityNorm = normalizeCity(cityRaw);
-	const cityHash = hashCity(cityRaw);
-	const client = getPopPublicClient(rpc);
+	const cityHash = hashCity(cityId);
+	const chain = await tryReadChainPlant(cityHash);
+	const useChainLogic = Boolean(chain && hasCoordinatorSigningKey());
+	const logicDay = useChainLogic && chain ? chain.currentDay : offchainCurrentDay(cityId);
 
-	let chainDay: number;
-	try {
-		chainDay = await readPopCurrentDay(client, contract, cityHash);
-	} catch {
-		return Response.json({ error: "chain read failed" }, { status: 502 });
-	}
-
-	const dayForCode = codeDayFromChainCurrentDay(chainDay);
-	const expected = deriveDailyCode(secret, cityNorm, dayForCode);
+	const dayForCode = codeDayFromChainCurrentDay(logicDay);
+	const expected = deriveDailyCode(secret, cityId, dayForCode);
 	const got = codeRaw.trim().toUpperCase();
 
 	if (got !== expected) {
@@ -82,19 +61,20 @@ export async function POST(req: Request) {
 			{
 				ok: false,
 				error: "invalid code",
-				verifiedCount: verifiedCount(cityNorm),
-				currentDay: chainDay,
+				verifiedCount: verifiedCount(cityId),
+				currentDay: logicDay,
 			},
 			{ status: 401 },
 		);
 	}
 
-	const count = addVerified(cityNorm, address);
+	const count = addVerified(cityId, address);
 
 	return Response.json({
 		ok: true,
 		verifiedCount: count,
-		currentDay: chainDay,
+		currentDay: logicDay,
 		codeDayUsed: dayForCode,
+		mode: useChainLogic ? "chain" : "offchain",
 	});
 }

@@ -1,11 +1,13 @@
-import { hashCity, normalizeCity } from "@/lib/pop/city";
+import { hashCity } from "@/lib/pop/city";
+import { labelForCityId, parsePopCityId } from "@/lib/pop/cities";
+import { tryReadChainPlant } from "@/lib/pop/chain-attempt";
+import { hasCoordinatorSigningKey } from "@/lib/pop/coordinator-key";
 import {
-	getPopPublicClient,
-	readPlantSummary,
-	readPopCurrentDay,
-} from "@/lib/pop/chain-read";
-import { getAlchemySepoliaUrl, getPopContractAddress } from "@/lib/pop/env-server";
-import { verifiedCount } from "@/lib/pop/verified-store";
+	offchainCurrentDay,
+	offchainPlantSnapshot,
+} from "@/lib/pop/offchain-plant";
+import { wateringDayForTx } from "@/lib/pop/plant-day";
+import { listVerifiedAddresses, verifiedCount } from "@/lib/pop/verified-store";
 
 export const runtime = "nodejs";
 
@@ -14,63 +16,54 @@ const MIN_VERIFIED = 2;
 export async function GET(req: Request) {
 	const { searchParams } = new URL(req.url);
 	const cityRaw = searchParams.get("city");
-	if (!cityRaw?.trim()) {
-		return Response.json({ error: "city required" }, { status: 400 });
-	}
-
-	const contract = getPopContractAddress();
-	const rpc = getAlchemySepoliaUrl();
-	if (!contract) {
+	const cityId = parsePopCityId(cityRaw);
+	if (!cityId) {
 		return Response.json(
-			{
-				error:
-					"Set POP_CONTRACT_ADDRESS or NEXT_PUBLIC_POP_CONTRACT_ADDRESS (deployed contract on Sepolia).",
-			},
-			{ status: 500 },
-		);
-	}
-	if (!rpc) {
-		return Response.json(
-			{
-				error:
-					"Set ALCHEMY_SEPOLIA_URL or NEXT_PUBLIC_ALCHEMY_SEPOLIA_URL.",
-			},
-			{ status: 500 },
+			{ error: "invalid or missing city (use a supported city id)" },
+			{ status: 400 },
 		);
 	}
 
-	const cityNorm = normalizeCity(cityRaw);
-	const cityHash = hashCity(cityRaw);
-	const client = getPopPublicClient(rpc);
+	const cityHash = hashCity(cityId);
+	const chain = await tryReadChainPlant(cityHash);
 
+	let mode: "chain" | "offchain";
 	let currentDay: number;
-	let completed = false;
-	let lastWateredDay = 0;
-	try {
-		currentDay = await readPopCurrentDay(client, contract, cityHash);
-		const plant = await readPlantSummary(client, contract, cityHash);
-		completed = plant.completed;
-		lastWateredDay = plant.lastWateredDay;
-	} catch (e) {
-		const msg = e instanceof Error ? e.message : "chain read failed";
-		return Response.json({ error: "chain read failed", detail: msg }, { status: 502 });
+	let completed: boolean;
+	let lastWateredDay: number;
+
+	if (chain && hasCoordinatorSigningKey()) {
+		mode = "chain";
+		currentDay = chain.currentDay;
+		completed = chain.completed;
+		lastWateredDay = chain.lastWateredDay;
+	} else {
+		mode = "offchain";
+		const p = offchainPlantSnapshot(cityId);
+		currentDay = offchainCurrentDay(cityId);
+		completed = p.completed;
+		lastWateredDay = p.lastWateredDay;
 	}
 
-	const count = verifiedCount(cityNorm);
+	const wateringDay = wateringDayForTx(currentDay, lastWateredDay);
+	const count = verifiedCount(cityId);
 	const canWater =
 		count >= MIN_VERIFIED &&
 		!completed &&
-		currentDay >= 1 &&
-		currentDay <= 7;
+		(wateringDay >= 1 && wateringDay <= 7);
 
 	return Response.json({
-		city: cityNorm,
+		cityId,
+		cityLabel: labelForCityId(cityId),
 		cityHash,
+		mode,
 		verifiedCount: count,
+		verifiedAddresses: listVerifiedAddresses(cityId),
 		minVerified: MIN_VERIFIED,
 		currentDay,
 		completed,
 		lastWateredDay,
+		wateringDay,
 		canWater,
 	});
 }

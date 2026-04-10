@@ -1,12 +1,14 @@
 import { keccak256, stringToBytes } from "viem";
 
-/** Match Solidity: keccak256(abi.encodePacked(normalizedCity)) — UTF-8 bytes */
+import type { PopCityId } from "./cities";
+
 export function normalizeCity(city: string): string {
 	return city.trim().toLowerCase();
 }
 
-export function hashCity(city: string): `0x${string}` {
-	const n = normalizeCity(city);
+/** `cityId` must be a POP city slug (e.g. lucknow) — same bytes on-chain. */
+export function hashCity(cityId: PopCityId | string): `0x${string}` {
+	const n = normalizeCity(cityId);
 	return keccak256(stringToBytes(n));
 }
 

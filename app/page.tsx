@@ -13,9 +13,9 @@ export default function DemoOne() {
 			<div className="fixed top-4 right-4 z-[100]">
 				<Link
 					href="/pop"
-					className="rounded-full border border-emerald-400/50 bg-black/70 px-3 py-1.5 text-xs text-emerald-300 backdrop-blur hover:bg-emerald-950/80"
+					className="rounded-full border border-emerald-400/50 bg-black/70 px-3 py-1.5 text-xs text-emerald-300 backdrop-blur transition hover:bg-emerald-950/80 hover:ring-2 hover:ring-emerald-500/30"
 				>
-					Pop Plant (Web3)
+					Proof of Presence →
 				</Link>
 			</div>
 			<InfiniteHero />

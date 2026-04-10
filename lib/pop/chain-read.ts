@@ -9,6 +9,22 @@ import { sepolia } from "viem/chains";
 
 import { popContractAbi } from "./abi";
 
+/**
+ * viem returns empty `0x` for reads when the address has no contract bytecode
+ * (common mistake: pasting your wallet instead of the deployed contract).
+ */
+export async function ensurePopContractDeployed(
+	client: PublicClient,
+	contractAddress: Address,
+): Promise<void> {
+	const code = await client.getBytecode({ address: contractAddress });
+	if (!code || code === "0x") {
+		throw new Error(
+			"No contract bytecode at POP_CONTRACT_ADDRESS on Sepolia. Use the deployed ProofOfPresencePlant address from your deploy script output — not your MetaMask wallet address.",
+		);
+	}
+}
+
 export function getPopPublicClient(rpcUrl: string): PublicClient {
 	return createPublicClient({
 		chain: sepolia as Chain,

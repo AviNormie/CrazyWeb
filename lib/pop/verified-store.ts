@@ -1,30 +1,31 @@
-import { normalizeCity } from "./city";
+import type { PopCityId } from "./cities";
 
-/** In-memory verified wallets per normalized city key (resets on server restart). */
-const verifiedByCity = new Map<string, Set<string>>();
+const verifiedByCity = new Map<PopCityId, Set<string>>();
 
-export function getVerifiedSet(city: string): Set<string> {
-	const key = normalizeCity(city);
-	let set = verifiedByCity.get(key);
+export function getVerifiedSet(cityId: PopCityId): Set<string> {
+	let set = verifiedByCity.get(cityId);
 	if (!set) {
 		set = new Set();
-		verifiedByCity.set(key, set);
+		verifiedByCity.set(cityId, set);
 	}
 	return set;
 }
 
-export function addVerified(city: string, address: `0x${string}`): number {
-	const set = getVerifiedSet(city);
+export function addVerified(cityId: PopCityId, address: `0x${string}`): number {
+	const set = getVerifiedSet(cityId);
 	const lower = address.toLowerCase() as `0x${string}`;
 	set.add(lower);
 	return set.size;
 }
 
-export function verifiedCount(city: string): number {
-	return getVerifiedSet(city).size;
+export function verifiedCount(cityId: PopCityId): number {
+	return getVerifiedSet(cityId).size;
 }
 
-export function isVerified(city: string, address: string): boolean {
-	const set = getVerifiedSet(city);
-	return set.has(address.toLowerCase() as `0x${string}`);
+export function isVerified(cityId: PopCityId, address: string): boolean {
+	return getVerifiedSet(cityId).has(address.toLowerCase() as `0x${string}`);
+}
+
+export function listVerifiedAddresses(cityId: PopCityId): string[] {
+	return Array.from(getVerifiedSet(cityId)).sort();
 }

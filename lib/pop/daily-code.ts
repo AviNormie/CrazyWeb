@@ -1,16 +1,15 @@
 import { createHmac } from "node:crypto";
 
-import { normalizeCity } from "./city";
+import type { PopCityId } from "./cities";
 
-/** Deterministic meet code: first 8 hex chars (uppercase) of HMAC-SHA256(secret, city:day). */
+/** Deterministic meet code: HMAC-SHA256(secret, cityId:day) → first 8 hex chars (uppercase). */
 export function deriveDailyCode(
 	secret: string,
-	city: string,
+	cityId: PopCityId,
 	dayForCode: number,
 ): string {
-	const cityKey = normalizeCity(city);
 	const h = createHmac("sha256", secret);
-	h.update(`${cityKey}:${dayForCode}`);
+	h.update(`${cityId}:${dayForCode}`);
 	return h.digest("hex").slice(0, 8).toUpperCase();
 }
 
